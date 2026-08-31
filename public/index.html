@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squiggle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FAF6EC;
+    --paper-dim: #F1EBDB;
+    --ink: #211E19;
+    --ink-soft: #6B6459;
+    --line: #DCD3BE;
+    --red: #D6455A;
+    --teal: #2A9D8F;
+    --mustard: #E3A73D;
+    --blue: #3C6E9B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 28px 28px;
+    background-position: -1px -1px;
+  }
+  .brand { font-family: 'Caveat', cursive; font-weight: 700; }
+
+  #lobby { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .card {
+    background: var(--paper); border: 2px solid var(--ink); border-radius: 18px;
+    box-shadow: 6px 6px 0 var(--ink);
+    padding: 36px 32px; width: 100%; max-width: 420px;
+  }
+  .card h1 { font-size: 52px; margin: 0 0 4px; line-height: 1; }
+  .card p.tag { margin: 0 0 28px; color: var(--ink-soft); font-size: 15px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 16px 0 6px; }
+  input[type=text] {
+    width: 100%; padding: 12px 14px; border-radius: 10px; border: 2px solid var(--ink);
+    font-size: 16px; font-family: inherit; background: #fff; color: var(--ink);
+  }
+  input[type=text]:focus { outline: 3px solid var(--mustard); outline-offset: 1px; }
+  .btn {
+    display: inline-block; width: 100%; margin-top: 18px; padding: 12px 16px;
+    border-radius: 10px; border: 2px solid var(--ink); background: var(--ink); color: var(--paper);
+    font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer;
+    transition: transform .08s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(1px); }
+  .btn.secondary { background: var(--paper); color: var(--ink); }
+  .btn.accent { background: var(--red); border-color: var(--red); color: #fff; }
+  .divider { display: flex; align-items: center; gap: 10px; margin: 26px 0 6px; color: var(--ink-soft); font-size: 13px; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+  .error { color: var(--red); font-size: 13px; margin-top: 10px; min-height: 16px; }
+  .room-pill {
+    display: inline-block; background: var(--paper-dim); border: 2px solid var(--ink);
+    border-radius: 8px; padding: 3px 10px; font-weight: 700; letter-spacing: 0.05em;
+  }
+
+  #game { display: none; min-height: 100vh; padding: 16px; }
+  .game-wrap { max-width: 1180px; margin: 0 auto; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--paper); border: 2px solid var(--ink); border-radius: 14px;
+    padding: 10px 18px; margin-bottom: 14px; box-shadow: 4px 4px 0 var(--ink);
+    flex-wrap: wrap;
+  }
+  .topbar .brand { font-size: 30px; }
+  .word-blanks { font-size: 26px; letter-spacing: 4px; font-weight: 700; }
+  .timer { font-size: 22px; font-weight: 700; color: var(--red); min-width: 44px; text-align: center; }
+  .round-label { font-size: 13px; color: var(--ink-soft); }
+
+  .layout { display: grid; grid-template-columns: 200px 1fr 260px; gap: 14px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--paper); border: 2px solid var(--ink); border-radius: 14px;
+    box-shadow: 4px 4px 0 var(--ink); padding: 14px; display: flex; flex-direction: column;
+  }
+  .panel h3 { margin: 0 0 10px; font-size: 13px; letter-spacing: 0.02em; color: var(--ink-soft); font-weight: 600; }
+
+  .player-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 8px; border-radius: 8px; font-size: 14px; margin-bottom: 4px;
+  }
+  .player-row.me { background: var(--paper-dim); }
+  .player-row .p-name { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+  .player-row .pencil { font-size: 13px; }
+  .player-row .score { font-weight: 700; color: var(--teal); }
+  .player-row.guessed .p-name { color: var(--teal); }
+
+  #canvasBox { display: flex; flex-direction: column; gap: 10px; }
+  #boardWrap { position: relative; border: 2px solid var(--ink); border-radius: 12px; overflow: hidden; background: #fff; }
+  #board { display: block; width: 100%; height: 460px; touch-action: none; cursor: crosshair; }
+  .overlay-msg {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(250, 246, 236, 0.92); font-family: 'Caveat', cursive; font-size: 30px; text-align: center; padding: 20px;
+  }
+
+  .tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .swatches { display: flex; gap: 6px; }
+  .swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--ink); cursor: pointer; }
+  .swatch.active { outline: 2px solid var(--mustard); outline-offset: 2px; }
+  input[type=range] { width: 90px; }
+  .tools .btn { width: auto; margin: 0; padding: 7px 14px; font-size: 13px; }
+
+  #wordChoice {
+    display: none; gap: 10px; flex-wrap: wrap; justify-content: center;
+    background: var(--paper-dim); border: 2px dashed var(--ink); border-radius: 12px; padding: 16px; margin-bottom: 10px;
+  }
+  #wordChoice button { font-family: 'Caveat', cursive; font-size: 24px; }
+
+  #chatPanel { display: flex; flex-direction: column; height: 100%; }
+  #chatLog { flex: 1; overflow-y: auto; margin-bottom: 8px; max-height: 380px; padding-right: 2px; }
+  .chat-line { font-size: 13.5px; margin-bottom: 6px; line-height: 1.35; }
+  .chat-line b { color: var(--blue); }
+  .chat-line.system { color: var(--teal); font-style: italic; }
+  .chat-line.correct { color: var(--teal); font-weight: 700; }
+  #guessForm { display: flex; gap: 6px; }
+  #guessInput { flex: 1; padding: 9px 10px; border-radius: 8px; border: 2px solid var(--ink); font-family: inherit; font-size: 14px; }
+  #guessForm button { padding: 9px 14px; border-radius: 8px; border: 2px solid var(--ink); background: var(--ink); color: var(--paper); font-weight: 600; cursor: pointer; }
+
+  #toast {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 10px;
+    font-size: 14px; z-index: 100; opacity: 0; transition: opacity .25s; pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+
+  #gameOver { display: none; text-align: center; padding: 40px 20px; }
+  #gameOver .brand { font-size: 44px; }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div id="lobby">
+  <div class="card">
+    <h1 class="brand">Squiggle</h1>
+    <p class="tag">Draw it. Guess it. One squiggle at a time.</p>
+
+    <label for="nameInput">Your name</label>
+    <input type="text" id="nameInput" placeholder="e.g. Sam" maxlength="16">
+
+    <button class="btn" id="createBtn">Create a room</button>
+
+    <div class="divider">or join one</div>
+
+    <label for="codeInput">Room code</label>
+    <input type="text" id="codeInput" placeholder="e.g. AB3K9" maxlength="5" style="text-transform:uppercase">
+    <button class="btn secondary" id="joinBtn">Join room</button>
+
+    <div class="error" id="lobbyError"></div>
+  </div>
+</div>
+
+<div id="game">
+  <div class="game-wrap">
+    <div class="topbar">
+      <div class="brand">Squiggle</div>
+      <div class="round-label">Room <span class="room-pill" id="roomCodeLabel"></span> · Round <span id="roundLabel">-</span></div>
+      <div class="word-blanks" id="wordBlanks">waiting for players…</div>
+      <div class="timer" id="timerLabel">--</div>
+    </div>
+
+    <div id="wordChoice"></div>
+
+    <div class="layout">
+      <div class="panel" id="playersPanel">
+        <h3>Players</h3>
+        <div id="playerList"></div>
+        <button class="btn accent" id="startBtn" style="display:none;">Start game</button>
+      </div>
+
+      <div class="panel" id="canvasBox">
+        <div id="boardWrap">
+          <canvas id="board" width="900" height="460"></canvas>
+          <div class="overlay-msg" id="boardOverlay">Waiting for the host to start…</div>
+        </div>
+        <div class="tools" id="tools" style="display:none;">
+          <div class="swatches" id="swatches"></div>
+          <input type="range" id="brushSize" min="2" max="24" value="6">
+          <button class="btn secondary" id="eraserBtn">Eraser</button>
+          <button class="btn secondary" id="clearBtn">Clear</button>
+        </div>
+      </div>
+
+      <div class="panel" id="chatPanel">
+        <h3>Guesses</h3>
+        <div id="chatLog"></div>
+        <form id="guessForm">
+          <input type="text" id="guessInput" placeholder="Type your guess…" maxlength="80" autocomplete="off">
+          <button type="submit">Go</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="gameOver">
+      <div class="brand">Game over!</div>
+      <div id="finalScores"></div>
+      <button class="btn" style="max-width:220px;margin:20px auto 0;" onclick="location.reload()">Play again</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+const COLORS = ['#211E19', '#D6455A', '#3C6E9B', '#2A9D8F', '#E3A73D', '#8B5CF6', '#F2F2F2'];
+
+let myId = null;
+let isHost = false;
+let isDrawer = false;
+let myWord = null;
+let currentColor = COLORS[0];
+let brushSize = 6;
+let erasing = false;
+let drawing = false;
+let lastPoint = null;
+
+const lobby = document.getElementById('lobby');
+const game = document.getElementById('game');
+const nameInput = document.getElementById('nameInput');
+const codeInput = document.getElementById('codeInput');
+const lobbyError = document.getElementById('lobbyError');
+
+const roomCodeLabel = document.getElementById('roomCodeLabel');
+const roundLabel = document.getElementById('roundLabel');
+const wordBlanks = document.getElementById('wordBlanks');
+const timerLabel = document.getElementById('timerLabel');
+const playerList = document.getElementById('playerList');
+const startBtn = document.getElementById('startBtn');
+const wordChoice = document.getElementById('wordChoice');
+const boardOverlay = document.getElementById('boardOverlay');
+const tools = document.getElementById('tools');
+const chatLog = document.getElementById('chatLog');
+const guessForm = document.getElementById('guessForm');
+const guessInput = document.getElementById('guessInput');
+const gameOver = document.getElementById('gameOver');
+const finalScores = document.getElementById('finalScores');
+const toast = document.getElementById('toast');
+
+const board = document.getElementById('board');
+const ctx = board.getContext('2d');
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function getName() { return nameInput.value.trim() || 'Player'; }
+
+document.getElementById('createBtn').addEventListener('click', () => {
+  socket.emit('create-room', { name: getName() });
+});
+document.getElementById('joinBtn').addEventListener('click', () => {
+  const code = codeInput.value.trim();
+  if (!code) { lobbyError.textContent = 'Enter a room code.'; return; }
+  socket.emit('join-room', { code, name: getName() });
+});
+
+socket.on('room-created', ({ code }) => enterGame(code));
+socket.on('room-joined', ({ code }) => enterGame(code));
+socket.on('error-msg', msg => { lobbyError.textContent = msg; });
+
+function enterGame(code) {
+  myId = socket.id;
+  lobby.style.display = 'none';
+  game.style.display = 'block';
+  roomCodeLabel.textContent = code;
+}
+
+socket.on('room-update', room => {
+  isHost = room.hostId === socket.id;
+  renderPlayers(room.players);
+  startBtn.style.display = (isHost && room.state === 'lobby' && room.players.length >= 2) ? 'block' : 'none';
+  if (room.state === 'lobby') {
+    boardOverlay.style.display = 'flex';
+    boardOverlay.textContent = isHost
+      ? 'Waiting for you to start the game…'
+      : 'Waiting for the host to start…';
+  }
+});
+
+function renderPlayers(players) {
+  playerList.innerHTML = '';
+  players.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'player-row' + (p.id === myId ? ' me' : '') + (p.guessed ? ' guessed' : '');
+    row.innerHTML = `<span class="p-name">${p.isDrawer ? '<span class="pencil">✏️</span>' : ''}${escapeHtml(p.name)}</span><span class="score">${p.score}</span>`;
+    playerList.appendChild(row);
+  });
+}
+
+document.getElementById('startBtn').addEventListener('click', () => socket.emit('start-game'));
+
+socket.on('turn-starting', ({ drawerId, drawerName, round, totalRounds }) => {
+  isDrawer = drawerId === myId;
+  myWord = null;
+  roundLabel.textContent = `${round} / ${totalRounds}`;
+  wordBlanks.textContent = isDrawer ? 'Pick a word…' : `${drawerName} is picking a word…`;
+  timerLabel.textContent = '--';
+  clearBoard();
+  tools.style.display = 'none';
+  wordChoice.style.display = 'none';
+  boardOverlay.style.display = 'flex';
+  boardOverlay.textContent = isDrawer ? 'Choose your word above!' : `${drawerName} is choosing a word…`;
+});
+
+socket.on('choose-word-options', options => {
+  wordChoice.innerHTML = '';
+  options.forEach(w => {
+    const b = document.createElement('button');
+    b.className = 'btn secondary';
+    b.textContent = w;
+    b.addEventListener('click', () => {
+      socket.emit('choose-word', w);
+      wordChoice.style.display = 'none';
+    });
+    wordChoice.appendChild(b);
+  });
+  wordChoice.style.display = 'flex';
+});
+
+socket.on('your-word', word => { myWord = word; });
+
+socket.on('round-start', ({ drawerId, drawerName, blanks, timeLeft, round, totalRounds }) => {
+  isDrawer = drawerId === myId;
+  roundLabel.textContent = `${round} / ${totalRounds}`;
+  wordBlanks.textContent = isDrawer ? myWord.toUpperCase() : blanks;
+  timerLabel.textContent = timeLeft;
+  boardOverlay.style.display = 'none';
+  wordChoice.style.display = 'none';
+  clearBoard();
+  chatLog.innerHTML = '';
+  tools.style.display = isDrawer ? 'flex' : 'none';
+});
+
+socket.on('timer', t => { timerLabel.textContent = t; });
+
+socket.on('round-end', ({ word }) => {
+  boardOverlay.style.display = 'flex';
+  boardOverlay.textContent = `Time's up! The word was "${word}".`;
+  tools.style.display = 'none';
+  wordBlanks.textContent = word.toUpperCase();
+  addChat({ system: true, text: `The word was "${word}".` });
+});
+
+socket.on('score-update', players => renderPlayers(players));
+
+socket.on('system-message', text => addChat({ system: true, text }));
+socket.on('chat-message', ({ name, text }) => addChat({ name, text }));
+socket.on('guess-correct', word => {
+  addChat({ correct: true, text: `You guessed it! The word was "${word}".` });
+  showToast('Correct! 🎉');
+});
+
+socket.on('game-over', players => {
+  document.querySelector('.game-wrap > .layout').style.display = 'none';
+  document.getElementById('wordChoice').style.display = 'none';
+  gameOver.style.display = 'block';
+  finalScores.innerHTML = players.map((p, i) =>
+    `<div class="player-row"><span class="p-name">${i === 0 ? '🏆 ' : ''}${escapeHtml(p.name)}</span><span class="score">${p.score}</span></div>`
+  ).join('');
+});
+
+function addChat({ name, text, system, correct }) {
+  const line = document.createElement('div');
+  line.className = 'chat-line' + (system ? ' system' : '') + (correct ? ' correct' : '');
+  line.innerHTML = system || correct ? escapeHtml(text) : `<b>${escapeHtml(name)}:</b> ${escapeHtml(text)}`;
+  chatLog.appendChild(line);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+guessForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const val = guessInput.value.trim();
+  if (!val) return;
+  socket.emit('guess', val);
+  guessInput.value = '';
+});
+
+const swatchesEl = document.getElementById('swatches');
+COLORS.forEach((c, i) => {
+  const sw = document.createElement('div');
+  sw.className = 'swatch' + (i === 0 ? ' active' : '');
+  sw.style.background = c;
+  sw.addEventListener('click', () => {
+    currentColor = c; erasing = false;
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+  });
+  swatchesEl.appendChild(sw);
+});
+document.getElementById('brushSize').addEventListener('input', e => { brushSize = +e.target.value; });
+document.getElementById('eraserBtn').addEventListener('click', () => { erasing = !erasing; });
+document.getElementById('clearBtn').addEventListener('click', () => {
+  clearBoard();
+  socket.emit('clear-canvas');
+});
+socket.on('clear-canvas', clearBoard);
+
+function clearBoard() { ctx.clearRect(0, 0, board.width, board.height); }
+
+function getPos(e) {
+  const rect = board.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clientX - rect.left) * (board.width / rect.width),
+    y: (clientY - rect.top) * (board.height / rect.height)
+  };
+}
+
+function strokeSegment(from, to, color, size) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = size;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.stroke();
+}
+
+function startDraw(e) {
+  if (!isDrawer) return;
+  drawing = true;
+  lastPoint = getPos(e);
+}
+function moveDraw(e) {
+  if (!isDrawer || !drawing) return;
+  e.preventDefault();
+  const p = getPos(e);
+  const color = erasing ? '#FFFFFF' : currentColor;
+  strokeSegment(lastPoint, p, color, brushSize);
+  socket.emit('draw', { from: lastPoint, to: p, color, size: brushSize });
+  lastPoint = p;
+}
+function endDraw() { drawing = false; lastPoint = null; }
+
+board.addEventListener('mousedown', startDraw);
+board.addEventListener('mousemove', moveDraw);
+window.addEventListener('mouseup', endDraw);
+board.addEventListener('touchstart', startDraw, { passive: true });
+board.addEventListener('touchmove', moveDraw, { passive: false });
+window.addEventListener('touchend', endDraw);
+
+socket.on('draw', ({ from, to, color, size }) => strokeSegment(from, to, color, size));
+</script>
+</body>
+</html>
