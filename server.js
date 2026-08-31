@@ -21,7 +21,23 @@ const WORDS = [
   'ostrich','parachute','quilt','rainforest','scarecrow','tractor','vampire',
   'wheelbarrow','yacht','avalanche','beehive','crown','dinosaur','eyeglasses',
   'fireworks','glacier','hedgehog','iceberg','jukebox','koala','lava','moon',
-  'nest','oasis','peacock','quiver','saddle','turtle','vulture'
+  'nest','oasis','peacock','quiver','saddle','turtle','vulture','binoculars','flashlight','boomerang','slingshot','magnifyingglass','compass',
+'keyhole','padlock','doorknob','mailbox','birdcage','birdhouse',
+'flowerpot','wateringcan','wheelbarrow','toolbox','ladder','stepladder',
+'hammock','sleepingbag','tentpole','campingstove','fishingrod','fishingnet',
+'lifejacket','lifebuoy','surfboard','paddleboard','canoe','rowboat',
+'anchor','shipwheel','periscope','divinghelmet','snorkel','flippers',
+'parachute','hangglider','hotairballoon','cablecar','trolleybus','locomotive',
+'railwaytrack','trafficbarrier','roadroller','towtruck','cementmixer','excavator',
+'bulldozer','forklift','crane','wheelchair','stroller','shoppingcart',
+'vendingmachine','ticketbooth','parkingmeter','streetlamp','firehydrant',
+'newspaperstand','busstop','crosswalk','roundabout','trafficcone','roadblock',
+'fireplace','chimney','bookshelf','wardrobe','nightstand','coatstand',
+'bathtub','showercurtain','toiletpaper','toothpaste','hairdryer','razor',
+'sewingmachine','iron','vacuumcleaner','laundrybasket','clothesline','hangers',
+'rollingpin','cuttingboard','colander','whisk','ladle','teapot',
+'peppermill','saltshaker','sugarbowl','lunchbox','thermos','chopsticks',
+'candlestick','chandelier','alarmclock','grandfatherclock','snowglobe','piggybank'
 ];
 
 const rooms = {};
