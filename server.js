@@ -21,8 +21,7 @@ const WORDS = [
   'ostrich','parachute','quilt','rainforest','scarecrow','tractor','vampire',
   'wheelbarrow','yacht','avalanche','beehive','crown','dinosaur','eyeglasses',
   'fireworks','glacier','hedgehog','iceberg','jukebox','koala','lava','moon',
-  'nest','oasis','peacock','quiver','saddle','turtle','vulture','compass','chimney','parrot','sword','castle','spaceship','windshield','geyser',
-  'crocodile','hourglass','binoculars','mushroom','bridge','skeleton','seashell'
+  'nest','oasis','peacock','quiver','saddle','turtle','vulture'
 ];
 
 const rooms = {};
@@ -90,6 +89,14 @@ function endRound(room) {
   if (room.timer) { clearInterval(room.timer); room.timer = null; }
   if (room.state === 'drawing') {
     io.to(room.code).emit('round-end', { word: room.word || '' });
+    if (room.word) {
+      room.roundHistory.push({
+        round: room.round,
+        drawerName: nameOf(room, room.drawerId),
+        word: room.word,
+        strokes: room.currentStrokes
+      });
+    }
   }
   room.state = 'between';
   io.to(room.code).emit('score-update', publicPlayers(room));
@@ -106,7 +113,10 @@ function startNextTurn(room) {
   room.round++;
   if (room.round > room.totalRounds) {
     room.state = 'ended';
-    io.to(room.code).emit('game-over', publicPlayers(room));
+    io.to(room.code).emit('game-over', {
+      players: publicPlayers(room),
+      history: room.roundHistory
+    });
     return;
   }
   room.drawerIndex = (room.drawerIndex + 1) % room.players.length;
@@ -139,6 +149,7 @@ function beginDrawing(room, word) {
   room.state = 'drawing';
   room.guessedIds = [];
   room.timeLeft = ROUND_SECONDS;
+  room.currentStrokes = [];
 
   const drawerSocket = io.sockets.sockets.get(room.drawerId);
   if (drawerSocket) drawerSocket.emit('your-word', word);
@@ -171,7 +182,9 @@ io.on('connection', socket => {
       totalRounds: 0,
       timer: null,
       chooseTimeout: null,
-      timeLeft: 0
+      timeLeft: 0,
+      currentStrokes: [],
+      roundHistory: []
     };
     socket.join(code);
     socket.data.room = code;
@@ -198,6 +211,8 @@ io.on('connection', socket => {
     room.totalRounds = room.players.length * ROUNDS_PER_PLAYER;
     room.round = 0;
     room.drawerIndex = -1;
+    room.roundHistory = [];
+    room.players.forEach(p => { p.score = 0; });
     startNextTurn(room);
   });
 
@@ -211,12 +226,14 @@ io.on('connection', socket => {
   socket.on('draw', data => {
     const room = rooms[socket.data.room];
     if (!room || room.drawerId !== socket.id) return;
+    room.currentStrokes.push(data);
     socket.to(room.code).emit('draw', data);
   });
 
   socket.on('clear-canvas', () => {
     const room = rooms[socket.data.room];
     if (!room || room.drawerId !== socket.id) return;
+    room.currentStrokes = [];
     io.to(room.code).emit('clear-canvas');
   });
 

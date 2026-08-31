@@ -17,6 +17,9 @@
     --teal: #2A9D8F;
     --mustard: #E3A73D;
     --blue: #3C6E9B;
+    --gold: #E3B23C;
+    --silver: #B7BEC7;
+    --bronze: #C58A5A;
   }
   * { box-sizing: border-box; }
   body {
@@ -132,13 +135,72 @@
   }
   #toast.show { opacity: 1; }
 
-  #gameOver { display: none; text-align: center; padding: 40px 20px; }
-  #gameOver .brand { font-size: 44px; }
+  /* ---------- Game Over ---------- */
+  #confettiCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 90; display: none; }
+
+  #gameOver { display: none; padding: 20px 0 60px; }
+  #gameOver .go-title { text-align: center; font-size: 56px; margin-bottom: 4px; }
+  #gameOver .go-sub { text-align: center; color: var(--ink-soft); margin-bottom: 32px; font-size: 15px; }
+
+  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 16px; margin-bottom: 40px; }
+  .podium-spot { display: flex; flex-direction: column; align-items: center; width: 140px; }
+  .podium-avatar {
+    width: 56px; height: 56px; border-radius: 50%; border: 3px solid var(--ink);
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+    margin-bottom: 8px; background: var(--paper-dim);
+  }
+  .podium-name { font-weight: 700; font-size: 15px; margin-bottom: 2px; text-align: center; word-break: break-word; }
+  .podium-score { font-size: 13px; color: var(--ink-soft); margin-bottom: 8px; }
+  .podium-block {
+    width: 100%; border: 2px solid var(--ink); border-radius: 10px 10px 0 0;
+    display: flex; align-items: flex-start; justify-content: center; padding-top: 10px;
+    font-family: 'Caveat', cursive; font-size: 30px; font-weight: 700; color: var(--ink);
+  }
+  .podium-spot.first .podium-block { height: 130px; background: var(--gold); }
+  .podium-spot.second .podium-block { height: 95px; background: var(--silver); }
+  .podium-spot.third .podium-block { height: 70px; background: var(--bronze); }
+  .podium-spot.first .podium-avatar { border-color: var(--gold); width: 68px; height: 68px; font-size: 30px; }
+
+  .rest-scores { max-width: 460px; margin: 0 auto 40px; }
+  .rest-scores .player-row { background: var(--paper-dim); margin-bottom: 6px; padding: 10px 14px; border-radius: 10px; }
+
+  .recap-title { text-align: center; font-family: 'Caveat', cursive; font-size: 32px; margin-bottom: 16px; }
+  .recap-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 14px; max-width: 900px; margin: 0 auto 30px;
+  }
+  .recap-card {
+    background: var(--paper); border: 2px solid var(--ink); border-radius: 12px;
+    box-shadow: 3px 3px 0 var(--ink); overflow: hidden; cursor: pointer;
+    transition: transform .1s ease;
+  }
+  .recap-card:hover { transform: translateY(-2px); }
+  .recap-card canvas { width: 100%; height: 110px; display: block; background: #fff; border-bottom: 2px solid var(--ink); }
+  .recap-card .recap-info { padding: 8px 10px; font-size: 12.5px; }
+  .recap-card .recap-word { font-weight: 700; font-family: 'Caveat', cursive; font-size: 20px; }
+  .recap-card .recap-meta { color: var(--ink-soft); }
+
+  .go-actions { display: flex; justify-content: center; gap: 12px; }
+  .go-actions .btn { width: auto; padding: 12px 26px; }
+
+  #replayModal {
+    display: none; position: fixed; inset: 0; background: rgba(33,30,25,0.75);
+    z-index: 150; align-items: center; justify-content: center; padding: 20px;
+  }
+  #replayModal .modal-inner {
+    background: var(--paper); border: 2px solid var(--ink); border-radius: 14px;
+    box-shadow: 6px 6px 0 var(--ink); padding: 18px; max-width: 640px; width: 100%;
+  }
+  #replayModal h4 { margin: 0 0 10px; font-family: 'Caveat', cursive; font-size: 26px; }
+  #replayCanvas { width: 100%; height: 380px; background: #fff; border: 2px solid var(--ink); border-radius: 10px; display: block; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .modal-actions .btn { width: auto; padding: 9px 16px; font-size: 14px; }
 </style>
 </head>
 <body>
 
 <div id="toast"></div>
+<canvas id="confettiCanvas"></canvas>
 
 <div id="lobby">
   <div class="card">
@@ -171,7 +233,7 @@
 
     <div id="wordChoice"></div>
 
-    <div class="layout">
+    <div class="layout" id="mainLayout">
       <div class="panel" id="playersPanel">
         <h3>Players</h3>
         <div id="playerList"></div>
@@ -202,9 +264,30 @@
     </div>
 
     <div id="gameOver">
-      <div class="brand">Game over!</div>
-      <div id="finalScores"></div>
-      <button class="btn" style="max-width:220px;margin:20px auto 0;" onclick="location.reload()">Play again</button>
+      <div class="go-title brand">🏆 Game Over!</div>
+      <div class="go-sub">Here's how everyone did</div>
+
+      <div class="podium" id="podium"></div>
+      <div class="rest-scores" id="restScores"></div>
+
+      <div class="recap-title" id="recapTitle" style="display:none;">Round Replays</div>
+      <div class="recap-grid" id="recapGrid"></div>
+
+      <div class="go-actions">
+        <button class="btn" onclick="location.reload()">Play again</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="replayModal">
+  <div class="modal-inner">
+    <h4 id="replayTitle">Replay</h4>
+    <canvas id="replayCanvas" width="900" height="460"></canvas>
+    <div class="modal-actions">
+      <button class="btn secondary" id="replayAgainBtn">▶ Replay</button>
+      <button class="btn secondary" id="replayDownloadBtn">⬇ Download PNG</button>
+      <button class="btn" id="replayCloseBtn">Close</button>
     </div>
   </div>
 </div>
@@ -243,8 +326,12 @@ const tools = document.getElementById('tools');
 const chatLog = document.getElementById('chatLog');
 const guessForm = document.getElementById('guessForm');
 const guessInput = document.getElementById('guessInput');
+const mainLayout = document.getElementById('mainLayout');
 const gameOver = document.getElementById('gameOver');
-const finalScores = document.getElementById('finalScores');
+const podiumEl = document.getElementById('podium');
+const restScoresEl = document.getElementById('restScores');
+const recapGrid = document.getElementById('recapGrid');
+const recapTitle = document.getElementById('recapTitle');
 const toast = document.getElementById('toast');
 
 const board = document.getElementById('board');
@@ -363,14 +450,185 @@ socket.on('guess-correct', word => {
   showToast('Correct! 🎉');
 });
 
-socket.on('game-over', players => {
-  document.querySelector('.game-wrap > .layout').style.display = 'none';
-  document.getElementById('wordChoice').style.display = 'none';
+socket.on('game-over', ({ players, history }) => {
+  mainLayout.style.display = 'none';
+  wordChoice.style.display = 'none';
+  document.querySelector('.topbar').style.display = 'none';
   gameOver.style.display = 'block';
-  finalScores.innerHTML = players.map((p, i) =>
-    `<div class="player-row"><span class="p-name">${i === 0 ? '🏆 ' : ''}${escapeHtml(p.name)}</span><span class="score">${p.score}</span></div>`
-  ).join('');
+  renderPodium(players);
+  renderRecap(history || []);
+  fireConfetti();
 });
+
+function renderPodium(players) {
+  const medalEmoji = ['🥇', '🥈', '🥉'];
+  const top3 = players.slice(0, 3);
+  const rest = players.slice(3);
+  const order = ['second', 'first', 'third'];
+  const arranged = [top3[1], top3[0], top3[2]];
+
+  podiumEl.innerHTML = '';
+  arranged.forEach((p, i) => {
+    if (!p) return;
+    const cls = order[i];
+    const rankIndex = cls === 'first' ? 0 : cls === 'second' ? 1 : 2;
+    const spot = document.createElement('div');
+    spot.className = `podium-spot ${cls}`;
+    spot.innerHTML = `
+      <div class="podium-avatar">${medalEmoji[rankIndex]}</div>
+      <div class="podium-name">${escapeHtml(p.name)}</div>
+      <div class="podium-score">${p.score} pts</div>
+      <div class="podium-block">${rankIndex + 1}</div>
+    `;
+    podiumEl.appendChild(spot);
+  });
+
+  restScoresEl.innerHTML = rest.map((p, i) => `
+    <div class="player-row">
+      <span class="p-name">#${i + 4} ${escapeHtml(p.name)}</span>
+      <span class="score">${p.score}</span>
+    </div>
+  `).join('');
+}
+
+function renderRecap(history) {
+  recapGrid.innerHTML = '';
+  if (!history.length) { recapTitle.style.display = 'none'; return; }
+  recapTitle.style.display = 'block';
+
+  history.forEach((entry, idx) => {
+    const card = document.createElement('div');
+    card.className = 'recap-card';
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = 300; thumbCanvas.height = 154;
+    card.appendChild(thumbCanvas);
+
+    const info = document.createElement('div');
+    info.className = 'recap-info';
+    info.innerHTML = `
+      <div class="recap-word">${escapeHtml(entry.word)}</div>
+      <div class="recap-meta">Round ${entry.round} · drawn by ${escapeHtml(entry.drawerName)}</div>
+    `;
+    card.appendChild(info);
+
+    drawStrokesInstant(thumbCanvas.getContext('2d'), entry.strokes, thumbCanvas.width / 900, thumbCanvas.height / 460);
+
+    card.addEventListener('click', () => openReplay(entry));
+    recapGrid.appendChild(card);
+  });
+}
+
+function drawStrokesInstant(targetCtx, strokes, scaleX, scaleY) {
+  targetCtx.clearRect(0, 0, targetCtx.canvas.width, targetCtx.canvas.height);
+  targetCtx.fillStyle = '#fff';
+  targetCtx.fillRect(0, 0, targetCtx.canvas.width, targetCtx.canvas.height);
+  strokes.forEach(s => {
+    targetCtx.strokeStyle = s.color;
+    targetCtx.lineWidth = Math.max(1, s.size * scaleX);
+    targetCtx.lineCap = 'round';
+    targetCtx.lineJoin = 'round';
+    targetCtx.beginPath();
+    targetCtx.moveTo(s.from.x * scaleX, s.from.y * scaleY);
+    targetCtx.lineTo(s.to.x * scaleX, s.to.y * scaleY);
+    targetCtx.stroke();
+  });
+}
+
+// ---------- Replay modal ----------
+const replayModal = document.getElementById('replayModal');
+const replayCanvas = document.getElementById('replayCanvas');
+const replayCtx = replayCanvas.getContext('2d');
+const replayTitle = document.getElementById('replayTitle');
+let currentReplayEntry = null;
+let replayTimer = null;
+
+function openReplay(entry) {
+  currentReplayEntry = entry;
+  replayTitle.textContent = `"${entry.word}" — drawn by ${entry.drawerName}`;
+  replayModal.style.display = 'flex';
+  playReplayAnimation(entry.strokes);
+}
+
+function playReplayAnimation(strokes) {
+  if (replayTimer) clearInterval(replayTimer);
+  replayCtx.clearRect(0, 0, replayCanvas.width, replayCanvas.height);
+  replayCtx.fillStyle = '#fff';
+  replayCtx.fillRect(0, 0, replayCanvas.width, replayCanvas.height);
+  let i = 0;
+  const strokesPerTick = Math.max(1, Math.ceil(strokes.length / 120));
+  replayTimer = setInterval(() => {
+    for (let n = 0; n < strokesPerTick && i < strokes.length; n++, i++) {
+      const s = strokes[i];
+      replayCtx.strokeStyle = s.color;
+      replayCtx.lineWidth = s.size;
+      replayCtx.lineCap = 'round';
+      replayCtx.lineJoin = 'round';
+      replayCtx.beginPath();
+      replayCtx.moveTo(s.from.x, s.from.y);
+      replayCtx.lineTo(s.to.x, s.to.y);
+      replayCtx.stroke();
+    }
+    if (i >= strokes.length) clearInterval(replayTimer);
+  }, 16);
+}
+
+document.getElementById('replayAgainBtn').addEventListener('click', () => {
+  if (currentReplayEntry) playReplayAnimation(currentReplayEntry.strokes);
+});
+document.getElementById('replayDownloadBtn').addEventListener('click', () => {
+  if (!currentReplayEntry) return;
+  const a = document.createElement('a');
+  a.href = replayCanvas.toDataURL('image/png');
+  a.download = `squiggle-${currentReplayEntry.word}-${Date.now()}.png`;
+  a.click();
+});
+document.getElementById('replayCloseBtn').addEventListener('click', () => {
+  replayModal.style.display = 'none';
+  if (replayTimer) clearInterval(replayTimer);
+});
+
+// ---------- Confetti ----------
+const confettiCanvas = document.getElementById('confettiCanvas');
+const confettiCtx = confettiCanvas.getContext('2d');
+function fireConfetti() {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+  confettiCanvas.style.display = 'block';
+  const colors = ['#D6455A', '#3C6E9B', '#2A9D8F', '#E3A73D', '#8B5CF6', '#211E19'];
+  const pieces = Array.from({ length: 140 }, () => ({
+    x: Math.random() * confettiCanvas.width,
+    y: -20 - Math.random() * confettiCanvas.height * 0.5,
+    r: 4 + Math.random() * 5,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    speed: 2 + Math.random() * 3,
+    drift: (Math.random() - 0.5) * 2,
+    rot: Math.random() * Math.PI,
+    rotSpeed: (Math.random() - 0.5) * 0.2
+  }));
+  let frame = 0;
+  const maxFrames = 260;
+  function step() {
+    frame++;
+    confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    pieces.forEach(p => {
+      p.y += p.speed;
+      p.x += p.drift;
+      p.rot += p.rotSpeed;
+      confettiCtx.save();
+      confettiCtx.translate(p.x, p.y);
+      confettiCtx.rotate(p.rot);
+      confettiCtx.fillStyle = p.color;
+      confettiCtx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 0.6);
+      confettiCtx.restore();
+    });
+    if (frame < maxFrames) {
+      requestAnimationFrame(step);
+    } else {
+      confettiCanvas.style.display = 'none';
+    }
+  }
+  step();
+}
 
 function addChat({ name, text, system, correct }) {
   const line = document.createElement('div');
@@ -392,6 +650,7 @@ guessForm.addEventListener('submit', e => {
   guessInput.value = '';
 });
 
+// ---------- Drawing ----------
 const swatchesEl = document.getElementById('swatches');
 COLORS.forEach((c, i) => {
   const sw = document.createElement('div');
