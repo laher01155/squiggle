@@ -140,6 +140,9 @@ function beginDrawing(room, word) {
   room.guessedIds = [];
   room.timeLeft = ROUND_SECONDS;
 
+  const drawerSocket = io.sockets.sockets.get(room.drawerId);
+  if (drawerSocket) drawerSocket.emit('your-word', word);
+
   io.to(room.code).emit('round-start', {
     drawerId: room.drawerId,
     drawerName: nameOf(room, room.drawerId),
@@ -148,8 +151,6 @@ function beginDrawing(room, word) {
     round: room.round,
     totalRounds: room.totalRounds
   });
-  const drawerSocket = io.sockets.sockets.get(room.drawerId);
-  if (drawerSocket) drawerSocket.emit('your-word', word);
 
   room.timer = setInterval(() => tick(room), 1000);
 }

@@ -335,7 +335,7 @@ socket.on('your-word', word => { myWord = word; });
 socket.on('round-start', ({ drawerId, drawerName, blanks, timeLeft, round, totalRounds }) => {
   isDrawer = drawerId === myId;
   roundLabel.textContent = `${round} / ${totalRounds}`;
-  wordBlanks.textContent = isDrawer ? myWord.toUpperCase() : blanks;
+  wordBlanks.textContent = isDrawer ? (myWord || '').toUpperCase() : blanks;
   timerLabel.textContent = timeLeft;
   boardOverlay.style.display = 'none';
   wordChoice.style.display = 'none';
